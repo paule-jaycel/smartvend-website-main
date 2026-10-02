@@ -16,7 +16,7 @@ interface RegistrationFormData {
   instructorName: string;
   civilStatus: "single" | "married" | "widowed" | "divorced" | "separated" | null;
   registrationPackage: "regular" | "vip" | null;
-  modeOfPayment: "gcash" | "bank-transfer" | null;
+  modeOfPayment: "cash" | "gcash" | "bank-transfer" | null;
   gcashProof: File | null;
   bankProof: File | null;
   paymentReference: string;
@@ -587,7 +587,7 @@ export function ZumbaRegistration() {
     return { isValid: true, extractedValue: extracted };
   };
 
-  const handlePaymentMethodSelect = (method: "gcash" | "bank-transfer") => {
+  const handlePaymentMethodSelect = (method: "cash" | "gcash" | "bank-transfer") => {
     setFormData(prev => ({
       ...prev,
       modeOfPayment: method,
@@ -802,7 +802,7 @@ export function ZumbaRegistration() {
   typeof formData.paymentReference !== "string" ||
   formData.paymentReference.trim().length === 0;
 
-if (formData.modeOfPayment && referenceMissing) {
+  if (formData.modeOfPayment && formData.modeOfPayment !== "cash" && referenceMissing) {
   newErrors[
     formData.modeOfPayment === "gcash" ? "gcashProof" : "bankProof"
   ] =
@@ -869,7 +869,10 @@ if (formData.modeOfPayment && referenceMissing) {
       return;
     }
 
-    const paymentAmountCents = paymentProofAmountCents;
+    const paymentAmountCents =
+      formData.modeOfPayment === "cash"
+        ? (formData.registrationPackage ? packagePrices[formData.registrationPackage] * 100 : null)
+        : paymentProofAmountCents;
     if (paymentAmountCents === null) {
       setSubmitError("Payment amount could not be read from the proof of payment.");
       return;
@@ -911,12 +914,17 @@ if (formData.modeOfPayment && referenceMissing) {
         .toString(36)
         .substring(2, 7)
         .toUpperCase()}`;
+      const submittedPaymentReference =
+        formData.modeOfPayment === "cash"
+          ? `CASH-${clientRegistrationReference}`
+          : formData.paymentReference;
 
       const jsonBody = {
         // ID is auto-generated
         registrationReference: clientRegistrationReference,
-        paymentReference: formData.paymentReference,
-        payment_reference: formData.paymentReference,
+        paymentReference: submittedPaymentReference,
+        payment_reference: submittedPaymentReference,
+        ...(formData.modeOfPayment === "cash" ? {} : { paymentProof }),
         firstName: formData.firstName,
         lastName: formData.lastName,
         birthday: formData.birthday, // Format: YYYY-MM-DD
@@ -932,7 +940,6 @@ if (formData.modeOfPayment && referenceMissing) {
         paymentDate: formData.paymentDate,
         payment_date: formData.paymentDate,
         paymentMethod: formData.modeOfPayment?.toUpperCase() || "UNSPECIFIED",
-        paymentProof: paymentProof,
         paymentStatus: "PENDING",
         registrationStatus: "PENDING",
         createdAt: new Date().toISOString(),
@@ -973,10 +980,10 @@ if (formData.modeOfPayment && referenceMissing) {
         } catch {
           // Use the plain response text below when the API does not return JSON.
         }
-        const errorText = `${responseText} ${JSON.stringify(errorData)}`.toLowerCase();
         const serverMessage = [errorData.message, errorData.error, errorData.detail].find(
           (value): value is string => typeof value === "string" && value.trim().length > 0,
         );
+        const errorText = `${responseText} ${JSON.stringify(errorData)}`.toLowerCase();
 
         const isDuplicatePhone =
           /(?:phone|mobile)(?:\s+number)?[^.\n]{0,50}(?:already registered|already exists|duplicate)|duplicate[^.\n]{0,50}(?:phone|mobile)/i.test(
@@ -1053,7 +1060,7 @@ if (formData.modeOfPayment && referenceMissing) {
           birthday: formData.birthday,
           email: formData.email,
           phoneNumber: formData.phoneNumber,
-          paymentReference: formData.paymentReference,
+          paymentReference: submittedPaymentReference,
           registeredAt: new Date().toISOString(),
         });
         localStorage.setItem("zumbaRegistrations", JSON.stringify(storedRegistrations));
@@ -1137,6 +1144,12 @@ if (formData.modeOfPayment && referenceMissing) {
                 </p>
                 <p className="mt-2 text-xs text-gray-500">Please save this number for the event.</p>
               </div>
+              {formData.modeOfPayment === "cash" && (
+                <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-left text-sm leading-relaxed text-amber-950">
+                  Please save this screenshot as proof of your registration and for your cash
+                  payment.
+                </p>
+              )}
             </div>
           </div>
           <button
@@ -1243,7 +1256,7 @@ if (formData.modeOfPayment && referenceMissing) {
             Secure your slot and enjoy a fun-filled Zumba experience with CleanIt!
           </p>
         </div>
-
+ 
         {/* Form Card */}
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Banner Image - Inside Card */}
@@ -1893,13 +1906,15 @@ if (formData.modeOfPayment && referenceMissing) {
               {/* Mode of Payment Section */}
               <div className="space-y-3 md:space-y-4 border-t pt-6 md:pt-8">
                 <h3 className="text-lg sm:text-xl font-bold text-gray-900">Mode of Payment</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                  {["gcash", "bank-transfer"].map(method => (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+                  {["cash", "gcash", "bank-transfer"].map(method => (
                     <button
                       key={method}
                       type="button"
                       name="modeOfPayment"
-                      onClick={() => handlePaymentMethodSelect(method as "gcash" | "bank-transfer")}
+                      onClick={() =>
+                        handlePaymentMethodSelect(method as "cash" | "gcash" | "bank-transfer")
+                      }
                       aria-invalid={!!errors.modeOfPayment}
                       aria-describedby={errors.modeOfPayment ? "modeOfPayment-error" : undefined}
                       className={`p-3 sm:p-4 rounded-lg border-2 font-semibold transition-all text-sm sm:text-base ${
@@ -1908,6 +1923,7 @@ if (formData.modeOfPayment && referenceMissing) {
                           : "border-gray-300 bg-white text-gray-700 hover:border-purple-300"
                       }`}
                     >
+                      {method === "cash" && "Cash"}
                       {method === "gcash" && "GCash"}
                       {method === "bank-transfer" && "Bank Transfer"}
                     </button>
@@ -2156,6 +2172,8 @@ if (formData.modeOfPayment && referenceMissing) {
                             ? "GCash"
                             : formData.modeOfPayment === "bank-transfer"
                               ? "Bank Transfer"
+                              : formData.modeOfPayment === "cash"
+                                ? "Cash"
                               : "Not selected"}
                         </span>
                       </div>
