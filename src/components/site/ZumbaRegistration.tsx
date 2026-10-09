@@ -5,6 +5,10 @@ import Tesseract from "tesseract.js";
 import modgcashQR from "@/assets/modgcash.jpg";
 import playStoreBadge from "@/assets/Playstore.png";
 import appStoreBadge from "@/assets/appstore.png";
+import {
+  IS_ZUMBA_REGISTRATION_CLOSED,
+  ZUMBA_REGISTRATION_CLOSED_MESSAGE,
+} from "./zumbaRegistrationAvailability";
 
 interface RegistrationFormData {
   firstName: string;
@@ -1119,6 +1123,34 @@ export function ZumbaRegistration() {
   const registrationFee = formData.registrationPackage
     ? packagePrices[formData.registrationPackage]
     : 0;
+
+  if (IS_ZUMBA_REGISTRATION_CLOSED) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-purple-900 via-blue-900 to-purple-800 px-4 py-12">
+        <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+          <div className="h-40 overflow-hidden sm:h-48 md:h-56 lg:h-64">
+            <img
+              src="/assets/zumba-cleanit.png"
+              alt="Zumba Fit by CleanIt"
+              className="h-full w-full object-cover object-center"
+              onError={event => {
+                event.currentTarget.style.display = "none";
+              }}
+            />
+          </div>
+          <div className="p-6 text-center sm:p-8 md:p-10">
+            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-[#B42318]" />
+            <h1 className="mb-3 text-2xl font-bold text-gray-900 sm:text-3xl">
+              Registration Closed
+            </h1>
+            <p className="text-base text-gray-600 sm:text-lg">
+              {ZUMBA_REGISTRATION_CLOSED_MESSAGE}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isSubmitted) {
     return (
