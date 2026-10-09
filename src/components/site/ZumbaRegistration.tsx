@@ -53,10 +53,20 @@ export function ZumbaRegistration() {
   const [submitError, setSubmitError] = useState("");
   const [isCivilStatusOpen, setIsCivilStatusOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const submitErrorRef = useRef<HTMLDivElement>(null);
   const gcashFileInputRef = useRef<HTMLInputElement>(null);
   const bankFileInputRef = useRef<HTMLInputElement>(null);
   const civilStatusRef = useRef<HTMLDivElement>(null);
   const [registrationReference, setRegistrationReference] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!submitError) return;
+
+    window.requestAnimationFrame(() => {
+      submitErrorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      submitErrorRef.current?.focus({ preventScroll: true });
+    });
+  }, [submitError]);
 
   const focusFirstError = (formErrors: FormErrors) => {
     const visualFieldOrder = [
@@ -73,13 +83,21 @@ export function ZumbaRegistration() {
       "bankProof",
     ];
     const firstErrorName = visualFieldOrder.find(fieldName => formErrors[fieldName]);
-    const firstErrorField = formRef.current?.querySelector<HTMLElement>(
-      `[name="${firstErrorName}"]`,
-    );
+    const firstErrorField = firstErrorName
+      ? formRef.current?.querySelector<HTMLElement>(`[name="${firstErrorName}"]`)
+      : null;
 
     if (firstErrorField) {
-      firstErrorField.scrollIntoView({ behavior: "smooth", block: "center" });
-      window.setTimeout(() => firstErrorField.focus(), 300);
+      window.setTimeout(() => {
+        const errorMessage = formRef.current?.querySelector<HTMLElement>(
+          `#${firstErrorName}-error`,
+        );
+        (errorMessage ?? firstErrorField).scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        firstErrorField.focus({ preventScroll: true });
+      }, 0);
     }
   };
 
@@ -1029,7 +1047,6 @@ export function ZumbaRegistration() {
           const fieldError = `Please review your ${fieldName.replace(/([A-Z])/g, " $1").toLowerCase()}.`;
           const mappedErrors = { [fieldName]: fieldError };
           setErrors(mappedErrors);
-          focusFirstError(mappedErrors);
         }
 
         const fallbackMessage = responseText.trim().startsWith("<") ? "" : responseText.trim();
@@ -1276,7 +1293,12 @@ export function ZumbaRegistration() {
           <div className="p-6 sm:p-8 md:p-10">
             <form ref={formRef} onSubmit={handleSubmit} className="space-y-8">
               {submitError && submitError !== "This payment reference has already been used." && (
-                <Alert className="border-[#B42318] bg-[#FEF3F2] text-[#B42318]" role="alert">
+                <Alert
+                  ref={submitErrorRef}
+                  tabIndex={-1}
+                  className="border-[#B42318] bg-[#FEF3F2] text-[#B42318]"
+                  role="alert"
+                >
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{submitError}</AlertDescription>
                 </Alert>
@@ -2142,7 +2164,12 @@ export function ZumbaRegistration() {
                   </div>
                 )}
                 {submitError === "This payment reference has already been used." && (
-                  <Alert className="border-[#B42318] bg-[#FEF3F2] text-[#B42318]" role="alert">
+                  <Alert
+                    ref={submitErrorRef}
+                    tabIndex={-1}
+                    className="border-[#B42318] bg-[#FEF3F2] text-[#B42318]"
+                    role="alert"
+                  >
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>{submitError}</AlertDescription>
                   </Alert>
