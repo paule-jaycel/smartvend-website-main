@@ -12,6 +12,8 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import carMeetImage from "@/assets/car-meet.png";
 import carMeetQrImage from "@/assets/qr-car-meet.jpg";
+import playStoreBadge from "@/assets/Playstore.png";
+import appStoreBadge from "@/assets/appstore.png";
 
 interface RegistrationFormData {
   firstName: string;
@@ -36,7 +38,7 @@ const initialFormData: RegistrationFormData = {
 };
 
 const fieldClassName =
-  "w-full rounded-lg border-2 border-gray-300 bg-gray-50 px-4 py-2 text-black outline-none transition-colors placeholder:text-gray-400 focus:border-purple-500 focus:bg-white";
+  "min-w-0 w-full rounded-lg border-2 border-gray-300 bg-gray-50 px-4 py-2 text-base text-black outline-none transition-colors placeholder:text-gray-400 focus:border-purple-500 focus:bg-white";
 
 const calculateAge = (birthday: string): number => {
   if (!birthday) return 0;
@@ -57,15 +59,28 @@ export function CarMeetRegistration() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = event.currentTarget;
+
+    if (name === "phoneNumber") {
+      const numbersOnly = value.replace(/\D/g, "").slice(0, 11);
+      setFormData(previous => ({ ...previous, phoneNumber: numbersOnly }));
+      setPhoneError("");
+      return;
+    }
+
     setFormData(previous => ({ ...previous, [name]: value }));
+    if (name === "email") setEmailError("");
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitError("");
+    setEmailError("");
+    setPhoneError("");
     setIsLoading(true);
 
     try {
@@ -100,13 +115,26 @@ export function CarMeetRegistration() {
 
       setIsSubmitted(true);
     } catch (error) {
-      setSubmitError(
+      const errorMessage =
         error instanceof TypeError && error.message.toLowerCase().includes("fetch")
           ? "Unable to connect to the registration service. Your registration was not confirmed. Please try again later."
           : error instanceof Error
             ? error.message
-            : "We were unable to complete your registration. Please try again.",
-      );
+            : "We were unable to complete your registration. Please try again.";
+      const duplicateEntry = errorMessage.match(/duplicate entry\s+['"]([^'"]+)['"]/i);
+      const duplicateValue = duplicateEntry?.[1].trim().toLowerCase();
+      const normalizePhone = (phone: string) => phone.replace(/\D/g, "");
+
+      if (duplicateValue === formData.email.trim().toLowerCase()) {
+        setEmailError("This email address is already registered. Please use a different email.");
+      } else if (
+        duplicateValue &&
+        normalizePhone(duplicateValue) === normalizePhone(formData.phoneNumber)
+      ) {
+        setPhoneError("This phone number is already registered. Please use a different number.");
+      } else {
+        setSubmitError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -114,8 +142,8 @@ export function CarMeetRegistration() {
 
   if (isSubmitted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-purple-900 via-blue-900 to-purple-800 px-4 py-12">
-        <div className="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl sm:p-8">
+      <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-purple-900 via-blue-900 to-purple-800 px-3 py-8 sm:px-4 sm:py-12">
+        <div className="w-full max-w-lg rounded-2xl bg-white p-4 text-center shadow-2xl sm:p-8">
           <div className="relative mb-6 overflow-hidden rounded-2xl px-2 py-5">
             <div className="confetti" aria-hidden="true">
               {Array.from({ length: 18 }, (_, index) => (
@@ -131,13 +159,13 @@ export function CarMeetRegistration() {
             event!
           </p>
           <div className="mb-6 overflow-hidden rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-50 via-white to-blue-50 text-left shadow-sm">
-            <div className="flex items-center justify-between border-b border-purple-100 px-5 py-4">
+            <div className="flex items-center justify-between gap-3 border-b border-purple-100 px-4 py-4 sm:px-5">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-purple-700">
                 Registration confirmed
               </p>
               <CheckCircle2 className="h-5 w-5 text-green-600" />
             </div>
-            <div className="px-5 py-5">
+            <div className="px-4 py-5 sm:px-5">
               <p className="mb-2 text-center text-xl font-bold text-gray-900">VINFAST X CleanIt</p>
               <p className="mb-5 text-sm text-gray-600">
                 <span className="font-semibold text-gray-900">Name:</span> {formData.firstName}{" "}
@@ -150,7 +178,7 @@ export function CarMeetRegistration() {
                 <img
                   src={carMeetQrImage}
                   alt="QR code to download the CleanIt mobile app"
-                  className="mx-auto h-auto w-full max-w-[220px] rounded-lg"
+                  className="mx-auto h-auto w-full max-w-full rounded-lg"
                 />
                 <p className="mt-3 text-xs text-gray-500">
                   We can&apos;t wait to see you at the event!
@@ -170,14 +198,71 @@ export function CarMeetRegistration() {
           >
             Register Another Person
           </button>
+          <div className="mt-6 rounded-2xl border border-gray-200 bg-gradient-to-br from-white via-purple-50 to-indigo-50 p-5 text-center shadow-sm sm:p-6">
+            <div className="relative mb-5 text-center">
+              <div className="px-8">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-purple-700">
+                  CleanIt App
+                </p>
+                <h3 className="mt-2 text-xl font-bold text-gray-900 sm:text-2xl">
+                  Want to experience more <br /> from CleanIt?
+                </h3>
+              </div>
+              <div className="absolute right-0 top-0 flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 text-purple-700 shadow-inner sm:h-12 sm:w-12">
+                <span className="text-sm font-black">✦</span>
+              </div>
+            </div>
+            <p className="mb-5 text-center text-base leading-7 text-gray-600">
+              Get the CleanIt mobile app and conveniently access CleanIt&apos;s services from your
+              phone anytime, anywhere.
+            </p>
+            <div className="grid gap-3 min-[420px]:grid-cols-2 sm:gap-4">
+              <a
+                href="https://play.google.com/store/apps/details?id=com.cleanit.activities"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex min-w-0 items-center justify-center gap-3 rounded-2xl bg-black px-3 py-4 text-white shadow-sm transition-transform duration-200 hover:-translate-y-0.5 hover:opacity-95 sm:px-4"
+              >
+                <img
+                  src={playStoreBadge}
+                  alt="Google Play"
+                  className="h-12 w-auto object-contain sm:h-14"
+                />
+                <span className="text-left leading-tight">
+                  <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-white/70">
+                    Get it on
+                  </span>
+                  <span className="block text-base font-semibold">Google Play</span>
+                </span>
+              </a>
+              <a
+                href="https://apps.apple.com/ph/app/clean-it-mobile-app/id6774019021"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex min-w-0 items-center justify-center gap-3 rounded-2xl bg-gray-900 px-3 py-4 text-white shadow-sm transition-transform duration-200 hover:-translate-y-0.5 hover:opacity-95 sm:px-4"
+              >
+                <img
+                  src={appStoreBadge}
+                  alt="App Store"
+                  className="h-12 w-auto object-contain sm:h-14"
+                />
+                <span className="text-left leading-tight">
+                  <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-white/70">
+                    Download on
+                  </span>
+                  <span className="block text-base font-semibold">App Store</span>
+                </span>
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full bg-linear-to-br from-purple-900 via-blue-900 to-purple-800 py-8 md:py-10 lg:py-12">
-      <div className="mx-auto max-w-2xl px-3 sm:px-4 md:px-6">
+    <div className="min-h-screen w-full bg-linear-to-br from-purple-900 via-blue-900 to-purple-800 px-1 py-6 sm:px-0 sm:py-8 md:py-10 lg:py-12">
+      <div className="mx-auto max-w-2xl px-2 sm:px-4 md:px-6">
         <header className="mb-8 text-center md:mb-10">
           <h1 className="mb-2 text-3xl font-bold text-white sm:text-4xl md:mb-3 md:text-5xl">
             VINFAST X CleanIt
@@ -187,7 +272,7 @@ export function CarMeetRegistration() {
           </p>
         </header>
 
-        <div className="overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="overflow-hidden rounded-xl bg-white shadow-2xl sm:rounded-2xl">
           <div className="h-40 overflow-hidden sm:h-48 md:h-56 lg:h-64">
             <img
               src={carMeetImage}
@@ -196,7 +281,7 @@ export function CarMeetRegistration() {
             />
           </div>
 
-          <div className="p-6 sm:p-8 md:p-10">
+          <div className="p-4 sm:p-8 md:p-10">
             <form onSubmit={handleSubmit} className="space-y-8">
               {submitError && (
                 <Alert className="border-[#B42318] bg-[#FEF3F2] text-[#B42318]" role="alert">
@@ -207,7 +292,7 @@ export function CarMeetRegistration() {
 
               <section className="mb-4 rounded-xl bg-linear-to-r from-purple-50 to-blue-50 p-5 sm:p-6">
                 <h2 className="text-sm font-semibold text-purple-800">EVENT INFORMATION</h2>
-                <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
                   <div className="flex min-w-0 items-start gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-purple-100 text-purple-600">
                       <CalendarDays className="h-5 w-5" aria-hidden="true" />
@@ -242,7 +327,7 @@ export function CarMeetRegistration() {
                 </div>
               </section>
 
-              <section className="overflow-hidden rounded-2xl border border-purple-200 bg-gradient-to-br from-white via-purple-50 to-blue-50 p-5 shadow-sm sm:p-6">
+              <section className="overflow-hidden rounded-2xl border border-purple-200 bg-gradient-to-br from-white via-purple-50 to-blue-50 p-4 shadow-sm sm:p-6">
                 <div className="mb-4 flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-100 text-purple-700">
                     <Sparkles className="h-5 w-5" aria-hidden="true" />
@@ -254,39 +339,30 @@ export function CarMeetRegistration() {
                     <h2 className="text-lg font-bold text-gray-900">Meet our guests</h2>
                   </div>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-3 md:grid-cols-2">
                   {[
                     { name: "Tyang Amy Perez", role: "CleanIt Brand Ambassador" },
                     { name: "Carlo Castillo", role: "Special Guest" },
                   ].map(guest => (
                     <div
                       key={guest.name}
-                      className="flex items-center gap-3 rounded-xl border border-purple-100 bg-white px-4 py-3 shadow-sm"
-                    >
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-600 to-blue-600 text-sm font-bold text-white">
-                        {guest.name
-                          .split(" ")
-                          .map(name => name[0])
-                          .join("")}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-gray-900">{guest.name}</p>
-                        <p className="text-xs font-medium text-purple-700">{guest.role}</p>
-                      </div>
+                     className="flex flex-col items-center rounded-xl border border-purple-100 bg-white px-4 py-3 text-center shadow-sm">
+                      <p className="font-semibold text-gray-900">{guest.name}</p>
+                      <p className="text-xs font-medium text-purple-700">{guest.role}</p>
                     </div>
                   ))}
                 </div>
               </section>
 
               <section className="mt-6 overflow-hidden rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-300 via-orange-200 to-pink-200 p-[1px] shadow-lg shadow-orange-200/50 sm:p-[1.5px]">
-                <div className="flex items-start gap-3 rounded-[15px] bg-gradient-to-r from-[#fffaf0] via-[#fff1d6] to-[#fdf2f8] p-4 sm:p-5">
+                <div className="flex items-start gap-3 rounded-[15px] bg-gradient-to-r from-[#fffaf0] via-[#fff1d6] to-[#fdf2f8] p-3 sm:p-5">
                   <div
                     className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 via-pink-500 to-purple-600 text-xl shadow-md shadow-pink-300/70"
                     aria-hidden="true"
                   >
                     🎁
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-[11px] font-black uppercase tracking-[0.14em] text-orange-700">
                       Giveaway
                     </p>
@@ -301,7 +377,7 @@ export function CarMeetRegistration() {
               <section className="space-y-3 border-t pt-6 md:space-y-4 md:pt-8">
                 <h2 className="text-lg font-bold text-gray-900 sm:text-xl">Personal Information</h2>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
                   <div>
                     <label
                       htmlFor="firstName"
@@ -351,6 +427,17 @@ export function CarMeetRegistration() {
                     type="date"
                     value={formData.birthday}
                     onChange={handleInputChange}
+                    onClick={event => {
+                      const input = event.currentTarget;
+                      input.focus();
+                      input.showPicker?.();
+                    }}
+                    min="1926-01-01"
+                    max={(() => {
+                      const maxDate = new Date();
+                      maxDate.setFullYear(maxDate.getFullYear() - 16);
+                      return maxDate.toISOString().split("T")[0];
+                    })()}
                     className={fieldClassName}
                     required
                   />
@@ -403,9 +490,16 @@ export function CarMeetRegistration() {
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="Enter your email address"
-                    className={fieldClassName}
+                    className={`${fieldClassName} ${emailError ? "border-[#B42318]" : ""}`}
+                    aria-invalid={Boolean(emailError)}
+                    aria-describedby={emailError ? "email-error" : undefined}
                     required
                   />
+                  {emailError && (
+                    <p id="email-error" className="mt-1 text-sm text-[#B42318]" role="alert">
+                      {emailError}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -420,15 +514,24 @@ export function CarMeetRegistration() {
                     name="phoneNumber"
                     type="tel"
                     inputMode="numeric"
-                    pattern="09[0-9]{9}"
+                    pattern="[0-9]*"
                     maxLength={11}
                     value={formData.phoneNumber}
                     onChange={handleInputChange}
                     placeholder="09XXXXXXXXX"
-                    className={fieldClassName}
+                    className={`${fieldClassName} ${phoneError ? "border-[#B42318]" : ""}`}
+                    aria-invalid={Boolean(phoneError)}
+                    aria-describedby={`phone-format${phoneError ? " phone-error" : ""}`}
                     required
                   />
-                  <p className="mt-1 text-xs text-gray-500">Format: 09XXXXXXXXX (11 digits)</p>
+                  <p id="phone-format" className="mt-1 text-xs text-gray-500">
+                    Format: 09XXXXXXXXX (11 digits)
+                  </p>
+                  {phoneError && (
+                    <p id="phone-error" className="mt-1 text-sm text-[#B42318]" role="alert">
+                      {phoneError}
+                    </p>
+                  )}
                 </div>
 
                 <div>
