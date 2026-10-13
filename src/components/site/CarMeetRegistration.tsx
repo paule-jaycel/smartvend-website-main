@@ -14,6 +14,10 @@ import carMeetImage from "@/assets/car-meet.png";
 import carMeetQrImage from "@/assets/qr-car-meet.jpg";
 import playStoreBadge from "@/assets/Playstore.png";
 import appStoreBadge from "@/assets/appstore.png";
+import {
+  CAR_MEET_REGISTRATION_CLOSED_MESSAGE,
+  IS_CAR_MEET_REGISTRATION_CLOSED,
+} from "./carMeetRegistrationAvailability";
 
 interface RegistrationFormData {
   firstName: string;
@@ -92,6 +96,19 @@ export function CarMeetRegistration() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+
+
+      //  const response = await fetch(
+      //   "http://localhost:8080/zumba/addRegistration",
+      //   {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //     body: JSON.stringify(jsonBody),
+      //   },
+      // );
+
       const response = await fetch(
         "https://cleanitapiwebservice-v52dc.ondigitalocean.app/car_meet/addRegistration",
         {
@@ -139,6 +156,31 @@ export function CarMeetRegistration() {
       setIsLoading(false);
     }
   };
+
+  if (IS_CAR_MEET_REGISTRATION_CLOSED) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-purple-900 via-blue-900 to-purple-800 px-4 py-12">
+        <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+          <div className="h-40 overflow-hidden sm:h-48 md:h-56 lg:h-64">
+            <img
+              src={carMeetImage}
+              alt="VINFAST X CleanIt Car Meet"
+              className="h-full w-full object-cover object-center"
+            />
+          </div>
+          <div className="p-6 text-center sm:p-8 md:p-10">
+            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-[#B42318]" />
+            <h1 className="mb-3 text-2xl font-bold text-gray-900 sm:text-3xl">
+              Registration Closed
+            </h1>
+            <p className="text-base text-gray-600 sm:text-lg">
+              {CAR_MEET_REGISTRATION_CLOSED_MESSAGE}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isSubmitted) {
     return (
